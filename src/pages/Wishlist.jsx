@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Heart, 
-  ShoppingCart, 
-  Trash2, 
-  Eye, 
-  Share2,
-  Grid,
-  List,
-  Star,
-  Filter,
-  Search,
-  Package
+import {
+  Heart, ShoppingCart, Trash2, Eye, Share2,
+  Grid, List, Star, Search, Package
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { cn, formatPrice, calculateDiscount, storage } from '../utils';
 import LoadingSpinner, { SkeletonLoader } from '../components/ui/LoadingSpinner';
+import { AuthContext } from '../context/AuthContext';
 
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -24,123 +16,72 @@ const Wishlist = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
   const { addItem } = useCart();
+  const { user, token } = useContext(AuthContext);
 
-  // Mock wishlist data - replace with real API
+  // Load wishlist from backend or localStorage
   useEffect(() => {
     const loadWishlist = async () => {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Load from localStorage or use mock data
-      const savedWishlist = storage.get('wishlist', []);
-      
-      const mockWishlistItems = [
-        {
-          id: 1,
-          name: 'Wireless Noise-Cancelling Headphones',
-          price: 299.99,
-          salePrice: 199.99,
-          rating: 4.8,
-          reviews: 1247,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-          category: 'Electronics',
-          brand: 'AudioTech',
-          isNew: true,
-          slug: 'wireless-headphones',
-          addedDate: '2024-01-20',
-          inStock: true,
-          stockCount: 15
-        },
-        {
-          id: 2,
-          name: 'Smart Fitness Watch',
-          price: 399.99,
-          salePrice: 299.99,
-          rating: 4.6,
-          reviews: 892,
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-          category: 'Electronics',
-          brand: 'FitTech',
-          isHot: true,
-          slug: 'smart-fitness-watch',
-          addedDate: '2024-01-18',
-          inStock: true,
-          stockCount: 8
-        },
-        {
-          id: 3,
-          name: 'Premium Running Shoes',
-          price: 159.99,
-          rating: 4.7,
-          reviews: 634,
-          image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
-          category: 'Sports',
-          brand: 'RunPro',
-          slug: 'premium-running-shoes',
-          addedDate: '2024-01-15',
-          inStock: false,
-          stockCount: 0
-        },
-        {
-          id: 4,
-          name: 'Minimalist Backpack',
-          price: 89.99,
-          salePrice: 69.99,
-          rating: 4.5,
-          reviews: 423,
-          image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
-          category: 'Fashion',
-          brand: 'UrbanStyle',
-          slug: 'minimalist-backpack',
-          addedDate: '2024-01-12',
-          inStock: true,
-          stockCount: 25
-        },
-        {
-          id: 5,
-          name: 'Organic Cotton T-Shirt',
-          price: 29.99,
-          salePrice: 19.99,
-          rating: 4.3,
-          reviews: 256,
-          image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
-          category: 'Fashion',
-          brand: 'EcoWear',
-          slug: 'organic-cotton-tshirt',
-          addedDate: '2024-01-10',
-          inStock: true,
-          stockCount: 50
+      if (user && token) {
+        try {
+          const res = await fetch('/api/user/wishlist', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          setWishlistItems(data.wishlist || []);
+        } catch {
+          setWishlistItems([]);
         }
-      ];
-
-      setWishlistItems(savedWishlist.length > 0 ? savedWishlist : mockWishlistItems);
+      } else {
+        const savedWishlist = storage.get('wishlist', []);
+        setWishlistItems(savedWishlist);
+      }
       setIsLoading(false);
     };
-
     loadWishlist();
-  }, []);
+  }, [user, token]);
 
-  // Save wishlist to localStorage whenever it changes
+  // Save wishlist to localStorage if not logged in
   useEffect(() => {
-    if (wishlistItems.length > 0) {
+    if (!user) {
       storage.set('wishlist', wishlistItems);
     }
-  }, [wishlistItems]);
+  }, [wishlistItems, user]);
 
-  const removeFromWishlist = (itemId) => {
-    setWishlistItems(prev => prev.filter(item => item.id !== itemId));
+  // Backend sync helpers
+  const syncWishlistWithBackend = async (method, body) => {
+    if (!user || !token) return;
+    await fetch('/api/user/wishlist', {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  };
+
+  const removeFromWishlist = async (productId) => {
+    setWishlistItems(prev => prev.filter(item => (item._id || item.id) !== productId));
+    if (user && token) {
+      await syncWishlistWithBackend('DELETE', { productId });
+    }
   };
 
   const addToCart = (item) => {
     addItem(item);
+    // Optionally remove from wishlist after adding to cart
+    // removeFromWishlist(item._id || item.id);
   };
 
-  const clearWishlist = () => {
+  const clearWishlist = async () => {
     setWishlistItems([]);
-    storage.remove('wishlist');
+    if (user && token) {
+      await syncWishlistWithBackend('DELETE');
+    } else {
+      storage.remove('wishlist');
+    }
   };
 
   const moveAllToCart = () => {
@@ -151,15 +92,12 @@ const Wishlist = () => {
     });
   };
 
-  // Get unique categories
-  const categories = [...new Set(wishlistItems.map(item => item.category))];
-
   // Filter and sort items
   const filteredItems = wishlistItems
     .filter(item => {
       const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           item.brand.toLowerCase().includes(searchQuery.toLowerCase());
+        item.brand.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
@@ -264,18 +202,6 @@ const Wishlist = () => {
                 />
               </div>
 
-              {/* Category Filter */}
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-4 py-3 bg-secondary-800/50 border border-secondary-700 rounded-lg text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
-              >
-                <option value="all">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-
               {/* Sort */}
               <select
                 value={sortBy}
@@ -334,10 +260,10 @@ const Wishlist = () => {
               )}>
                 {filteredItems.map((item, index) => (
                   <WishlistItem
-                    key={item.id}
+                    key={item._id || item.id}
                     item={item}
                     viewMode={viewMode}
-                    onRemove={() => removeFromWishlist(item.id)}
+                    onRemove={() => removeFromWishlist(item._id || item.id)}
                     onAddToCart={() => addToCart(item)}
                     index={index}
                   />

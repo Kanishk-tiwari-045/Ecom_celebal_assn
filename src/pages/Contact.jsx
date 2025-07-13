@@ -188,7 +188,7 @@ const Contact = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-12">
           {/* Contact Form */}
           <div className="bg-secondary-800/50 rounded-2xl p-8 backdrop-blur-sm">
             <div className="mb-6">
@@ -299,23 +299,6 @@ const Contact = () => {
                 </div>
               </div>
 
-              {/* Subject */}
-              <div>
-                <label className="block text-sm font-medium text-secondary-300 mb-2">
-                  Subject *
-                </label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => handleInputChange('subject', e.target.value)}
-                  className={cn('input', errors.subject && 'input-error')}
-                  placeholder="Enter message subject"
-                />
-                {errors.subject && (
-                  <p className="text-red-400 text-sm mt-1">{errors.subject}</p>
-                )}
-              </div>
-
               {/* Message */}
               <div>
                 <label className="block text-sm font-medium text-secondary-300 mb-2">
@@ -356,91 +339,9 @@ const Contact = () => {
               </button>
             </form>
           </div>
-
-          {/* Office Locations & Info */}
-          <div className="space-y-8">
-            {/* Office Locations */}
-            <div className="bg-secondary-800/50 rounded-2xl p-8 backdrop-blur-sm">
-              <h2 className="text-2xl font-bold text-white mb-6">Our Offices</h2>
-              <div className="space-y-6">
-                {officeLocations.map((office, index) => (
-                  <div 
-                    key={office.city}
-                    className="border-b border-secondary-700 last:border-b-0 pb-6 last:pb-0 animate-slide-up"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <h3 className="text-white font-semibold text-lg mb-3">{office.city}</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-start space-x-3">
-                        <MapPin className="w-4 h-4 text-primary-400 mt-1 flex-shrink-0" />
-                        <div>
-                          <p className="text-secondary-300 text-sm">{office.address}</p>
-                          <p className="text-secondary-300 text-sm">{office.zipCode}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Phone className="w-4 h-4 text-primary-400" />
-                        <p className="text-secondary-300 text-sm">{office.phone}</p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Mail className="w-4 h-4 text-primary-400" />
-                        <p className="text-secondary-300 text-sm">{office.email}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Business Hours */}
-            <div className="bg-secondary-800/50 rounded-2xl p-8 backdrop-blur-sm">
-              <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <Clock className="w-6 h-6 text-primary-400 mr-3" />
-                Business Hours
-              </h2>
-              <div className="space-y-3">
-                {[
-                  { day: 'Monday - Friday', hours: '9:00 AM - 6:00 PM EST' },
-                  { day: 'Saturday', hours: '10:00 AM - 4:00 PM EST' },
-                  { day: 'Sunday', hours: 'Closed' }
-                ].map((schedule, index) => (
-                  <div 
-                    key={schedule.day}
-                    className="flex justify-between items-center py-2 animate-slide-up"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <span className="text-secondary-300">{schedule.day}</span>
-                    <span className="text-white font-medium">{schedule.hours}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 p-4 bg-primary-500/10 border border-primary-500/20 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Globe className="w-5 h-5 text-primary-400" />
-                  <div>
-                    <p className="text-primary-400 font-medium">24/7 Online Support</p>
-                    <p className="text-primary-300 text-sm">
-                      Our online help center and email support are available around the clock.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* FAQ Link */}
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8">
-              <h3 className="text-white font-bold text-xl mb-2">Need Quick Answers?</h3>
-              <p className="text-primary-100 mb-6">
-                Check out our comprehensive FAQ section for instant answers to common questions.
-              </p>
-              <button className="btn bg-white text-primary-600 hover:bg-primary-50 btn-md">
-                Visit FAQ Center
-              </button>
-            </div>
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

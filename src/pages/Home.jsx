@@ -9,10 +9,7 @@ import {
   Zap,
   Shield,
   Truck,
-  Award,
-  TrendingUp,
-  Clock,
-  Users
+  Award
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { cn, formatPrice, calculateDiscount } from '../utils';
@@ -24,94 +21,28 @@ const Home = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  
   const { addItem } = useCart();
 
-  // Mock data - replace with real API calls
+  // Fetch featured products and categories from backend
   useEffect(() => {
     const loadData = async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setFeaturedProducts([
-        {
-          id: 1,
-          name: 'Wireless Noise-Cancelling Headphones',
-          price: 299.99,
-          salePrice: 199.99,
-          rating: 4.8,
-          reviews: 1247,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-          category: 'Electronics',
-          brand: 'AudioTech',
-          isNew: true,
-          slug: 'wireless-headphones'
-        },
-        {
-          id: 2,
-          name: 'Smart Fitness Watch',
-          price: 399.99,
-          salePrice: 299.99,
-          rating: 4.6,
-          reviews: 892,
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-          category: 'Electronics',
-          brand: 'FitTech',
-          isHot: true,
-          slug: 'smart-fitness-watch'
-        },
-        {
-          id: 3,
-          name: 'Premium Running Shoes',
-          price: 159.99,
-          rating: 4.7,
-          reviews: 634,
-          image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
-          category: 'Sports',
-          brand: 'RunPro',
-          slug: 'premium-running-shoes'
-        },
-        {
-          id: 4,
-          name: 'Minimalist Backpack',
-          price: 89.99,
-          salePrice: 69.99,
-          rating: 4.5,
-          reviews: 423,
-          image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
-          category: 'Fashion',
-          brand: 'UrbanStyle',
-          slug: 'minimalist-backpack'
-        }
-      ]);
+      setIsLoading(true);
+      try {
+        // Featured products
+        const prodRes = await fetch('/api/products?featured=true');
+        const prodData = await prodRes.json();
+        setFeaturedProducts(prodData.products || []);
 
-      setCategories([
-        {
-          name: 'Electronics',
-          image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400',
-          productCount: 1247,
-          href: '/products/electronics'
-        },
-        {
-          name: 'Fashion',
-          image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
-          productCount: 892,
-          href: '/products/fashion'
-        },
-        {
-          name: 'Home & Garden',
-          image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400',
-          productCount: 634,
-          href: '/products/home-garden'
-        },
-        {
-          name: 'Sports',
-          image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
-          productCount: 423,
-          href: '/products/sports'
-        }
-      ]);
+        // Categories
+        const catRes = await fetch('/api/products/categories');
+        const catData = await catRes.json();
+        setCategories(catData.categories || []);
+      } catch {
+        setFeaturedProducts([]);
+        setCategories([]);
+      }
 
+      // Testimonials (mock or fetch from backend if available)
       setTestimonials([
         {
           id: 1,
@@ -138,19 +69,17 @@ const Home = () => {
           product: 'Running Shoes'
         }
       ]);
-
       setIsLoading(false);
     };
-
     loadData();
   }, []);
 
   // Auto-rotate testimonials
   useEffect(() => {
+    if (!testimonials.length) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % testimonials.length);
     }, 5000);
-
     return () => clearInterval(interval);
   }, [testimonials.length]);
 
@@ -255,7 +184,7 @@ const Home = () => {
             {categories.map((category, index) => (
               <Link
                 key={category.name}
-                to={category.href}
+                to={category.href || `/products/${category.name.toLowerCase().replace(/\s+/g, '-')}`}
                 className="group relative overflow-hidden rounded-2xl bg-secondary-800/50 hover:bg-secondary-700/50 transition-all duration-300 animate-slide-up"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
@@ -301,17 +230,16 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product, index) => (
               <div
-                key={product.id}
+                key={product._id || product.id}
                 className="group bg-secondary-800/50 rounded-2xl overflow-hidden hover:bg-secondary-700/50 transition-all duration-300 animate-slide-up"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image}
+                    src={product.image || (product.images && product.images[0])}
                     alt={product.name}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  
                   {/* Badges */}
                   <div className="absolute top-3 left-3 flex flex-col space-y-2">
                     {product.isNew && (
@@ -326,7 +254,6 @@ const Home = () => {
                       </span>
                     )}
                   </div>
-
                   {/* Quick Actions */}
                   <div className="absolute top-3 right-3 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-colors">
@@ -337,7 +264,6 @@ const Home = () => {
                     </button>
                   </div>
                 </div>
-
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-primary-400 text-sm font-medium">{product.brand}</span>
@@ -346,9 +272,7 @@ const Home = () => {
                       <span className="text-secondary-300 text-sm">{product.rating}</span>
                     </div>
                   </div>
-                  
                   <h3 className="text-white font-semibold mb-2 line-clamp-2">{product.name}</h3>
-                  
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       {product.salePrice ? (
@@ -370,7 +294,6 @@ const Home = () => {
                       {product.reviews} reviews
                     </span>
                   </div>
-
                   <button
                     onClick={() => addItem(product)}
                     className="w-full btn btn-primary btn-sm group"
@@ -391,7 +314,6 @@ const Home = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-12">
             What Our Customers Say
           </h2>
-
           <div className="relative">
             {testimonials.map((testimonial, index) => (
               <div
@@ -425,7 +347,6 @@ const Home = () => {
               </div>
             ))}
           </div>
-
           {/* Testimonial Indicators */}
           <div className="flex justify-center space-x-2 mt-8">
             {testimonials.map((_, index) => (

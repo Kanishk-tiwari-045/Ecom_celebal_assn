@@ -119,19 +119,9 @@ const About = () => {
       description: 'Reached our first million in revenue and expanded our product catalog significantly.'
     },
     {
-      year: '2018',
-      title: 'International Expansion',
-      description: 'Launched in 5 new countries and established global shipping partnerships.'
-    },
-    {
       year: '2020',
       title: 'Mobile App Launch',
       description: 'Released our mobile app, making shopping even more convenient for customers.'
-    },
-    {
-      year: '2022',
-      title: 'Sustainability Initiative',
-      description: 'Launched our green packaging program and carbon-neutral shipping options.'
     },
     {
       year: '2024',
@@ -186,27 +176,6 @@ const About = () => {
                 Meet the Team
               </button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 border-b border-secondary-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div 
-                key={stat.label}
-                className="text-center group animate-slide-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary-500/20 transition-colors duration-300">
-                  <stat.icon className="w-8 h-8 text-primary-400" />
-                </div>
-                <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-secondary-400">{stat.label}</div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -365,27 +334,6 @@ const About = () => {
               </div>
             </div>
           )}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-primary-600 to-primary-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Join Our Journey
-          </h2>
-          <p className="text-primary-100 text-lg mb-8">
-            Be part of our story. Start shopping with us today and experience the difference.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="btn bg-white text-primary-600 hover:bg-primary-50 btn-lg group">
-              <span>Start Shopping</span>
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button className="btn btn-outline border-white text-white hover:bg-white hover:text-primary-600 btn-lg">
-              Contact Us
-            </button>
-          </div>
         </div>
       </section>
     </div>

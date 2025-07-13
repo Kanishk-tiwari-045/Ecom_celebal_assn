@@ -1,11 +1,12 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy, useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ScrollToTop from './components/ui/ScrollToTop';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'));
@@ -19,6 +20,8 @@ const Wishlist = lazy(() => import('./pages/Wishlist'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -74,92 +77,102 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// PrivateRoute component for protecting user routes
+const PrivateRoute = ({ children }) => {
+  const { user } = useContext(AuthContext);
+  return user ? children : <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <ErrorBoundary>
-      <CartProvider>
-        <Router>
-          <div className="min-h-screen bg-gradient-to-br from-secondary-900 via-secondary-800 to-secondary-900">
-            {/* Background Pattern */}
-            <div className="fixed inset-0 opacity-5">
-              <div className="absolute inset-0" style={{
-                backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
-                backgroundSize: '20px 20px'
-              }} />
+        <AuthProvider>
+          <CartProvider>
+          <Router>
+            <div className="min-h-screen bg-gradient-to-br from-secondary-900 via-secondary-800 to-secondary-900">
+              {/* Background Pattern */}
+              <div className="fixed inset-0 opacity-5">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+                  backgroundSize: '20px 20px'
+                }} />
+              </div>
+
+              {/* Main App Content */}
+              <div className="relative z-10">
+                <ScrollToTop />
+
+                {/* Navigation */}
+                <Navbar />
+
+                {/* Main Content */}
+                <main className="min-h-screen">
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<Home />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/products/:category" element={<Products />} />
+                      <Route path="/product/:slug" element={<ProductDetail />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+
+                      {/* User Routes (Protected) */}
+                      <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                      <Route path="/orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+                      <Route path="/wishlist" element={<PrivateRoute><Wishlist /></PrivateRoute>} />
+
+                      {/* 404 Route */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </main>
+
+                {/* Footer */}
+                <Footer />
+              </div>
+
+              {/* Toast Notifications */}
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: 'rgba(30, 41, 59, 0.95)',
+                    color: '#f8fafc',
+                    border: '1px solid rgba(71, 85, 105, 0.3)',
+                    borderRadius: '12px',
+                    backdropFilter: 'blur(12px)',
+                    boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.3)',
+                  },
+                  success: {
+                    iconTheme: {
+                      primary: '#10b981',
+                      secondary: '#f8fafc',
+                    },
+                  },
+                  error: {
+                    iconTheme: {
+                      primary: '#ef4444',
+                      secondary: '#f8fafc',
+                    },
+                  },
+                  loading: {
+                    iconTheme: {
+                      primary: '#3b82f6',
+                      secondary: '#f8fafc',
+                    },
+                  },
+                }}
+              />
             </div>
-
-            {/* Main App Content */}
-            <div className="relative z-10">
-              <ScrollToTop />
-              
-              {/* Navigation */}
-              <Navbar />
-
-              {/* Main Content */}
-              <main className="min-h-screen">
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/products/:category" element={<Products />} />
-                    <Route path="/product/:slug" element={<ProductDetail />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
-
-                    {/* User Routes */}
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/wishlist" element={<Wishlist />} />
-
-                    {/* 404 Route */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </main>
-
-              {/* Footer */}
-              <Footer />
-            </div>
-
-            {/* Toast Notifications */}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: 'rgba(30, 41, 59, 0.95)',
-                  color: '#f8fafc',
-                  border: '1px solid rgba(71, 85, 105, 0.3)',
-                  borderRadius: '12px',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 10px 40px -10px rgba(0, 0, 0, 0.3)',
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#10b981',
-                    secondary: '#f8fafc',
-                  },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#f8fafc',
-                  },
-                },
-                loading: {
-                  iconTheme: {
-                    primary: '#3b82f6',
-                    secondary: '#f8fafc',
-                  },
-                },
-              }}
-            />
-          </div>
-        </Router>
-      </CartProvider>
+          </Router>
+          </CartProvider>
+        </AuthProvider>
     </ErrorBoundary>
   );
 }

@@ -1,186 +1,145 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Edit3, 
-  Save, 
+import React, { useState, useEffect, useContext } from 'react';
+import {
+  User,
+  Edit3,
+  Save,
   X,
-  Camera,
-  Shield,
-  Bell,
-  CreditCard,
   Package,
   Heart,
+  CreditCard,
   Settings,
   LogOut,
   Eye,
   EyeOff
 } from 'lucide-react';
-import { cn, isValidEmail, isValidPhone, storage } from '../utils';
+import { cn, isValidEmail, isValidPhone } from '../utils';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+
+
+const API_BASE = '/api/user';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-
-  // User profile data
+  const [user, setUser] = useState(null);
   const [profileData, setProfileData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: '1990-05-15',
-    gender: 'male',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: ''
   });
-
-  // Address data
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      type: 'home',
-      isDefault: true,
-      firstName: 'John',
-      lastName: 'Doe',
-      address: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'United States'
-    },
-    {
-      id: 2,
-      type: 'work',
-      isDefault: false,
-      firstName: 'John',
-      lastName: 'Doe',
-      address: '456 Business Ave',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10002',
-      country: 'United States'
-    }
-  ]);
-
-  // Security settings
-  const [securitySettings, setSecuritySettings] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    twoFactorEnabled: false,
-    loginNotifications: true
-  });
-
-  // Notification preferences
-  const [notificationSettings, setNotificationSettings] = useState({
-    orderUpdates: true,
-    promotions: true,
-    newsletter: false,
-    smsNotifications: true,
-    emailNotifications: true
-  });
-
-  // Load user data
+  const [wishlist, setWishlist] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const { logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  // Load user activity on mount
   useEffect(() => {
-    const loadUserData = async () => {
+    const fetchUserActivity = async () => {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Load from localStorage or use default data
-      const savedProfile = storage.get('userProfile');
-      if (savedProfile) {
-        setProfileData(savedProfile);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE}/activity`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUser(data.user);
+          setProfileData({
+            name: data.user.name || '',
+            email: data.user.email || '',
+            phone: data.user.phone || '',
+            address: data.user.address || '',
+            city: data.user.city || '',
+            state: data.user.state || '',
+            zipCode: data.user.zipCode || '',
+            country: data.user.country || ''
+          });
+          setWishlist(data.user.wishlist || []);
+          setOrders(data.user.orders || []);
+          setTransactions(data.user.transactions || []);
+        }
+      } catch (err) {
+        setErrors({ global: 'Failed to load profile.' });
       }
-      
       setIsLoading(false);
     };
-
-    loadUserData();
+    fetchUserActivity();
   }, []);
 
   const validateProfile = () => {
     const newErrors = {};
-
-    if (!profileData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!profileData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!profileData.name.trim()) newErrors.name = 'Name is required';
     if (!profileData.email.trim()) newErrors.email = 'Email is required';
     else if (!isValidEmail(profileData.email)) newErrors.email = 'Invalid email format';
     if (!profileData.phone.trim()) newErrors.phone = 'Phone number is required';
     else if (!isValidPhone(profileData.phone)) newErrors.phone = 'Invalid phone number';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSaveProfile = async () => {
     if (!validateProfile()) return;
-
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Save to localStorage
-    storage.set('userProfile', profileData);
-    
-    setIsEditing(false);
-    setIsLoading(false);
     setErrors({});
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(profileData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUser(data.user);
+        setIsEditing(false);
+      } else {
+        setErrors({ global: data.message || 'Failed to update profile.' });
+      }
+    } catch (err) {
+      setErrors({ global: 'Failed to update profile.' });
+    }
+    setIsLoading(false);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setErrors({});
-    // Reset to saved data
-    const savedProfile = storage.get('userProfile');
-    if (savedProfile) {
-      setProfileData(savedProfile);
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipCode: user.zipCode || '',
+        country: user.country || ''
+      });
     }
-  };
-
-  const handlePasswordChange = async () => {
-    const newErrors = {};
-    
-    if (!securitySettings.currentPassword) newErrors.currentPassword = 'Current password is required';
-    if (!securitySettings.newPassword) newErrors.newPassword = 'New password is required';
-    else if (securitySettings.newPassword.length < 8) newErrors.newPassword = 'Password must be at least 8 characters';
-    if (securitySettings.newPassword !== securitySettings.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
-
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Reset password fields
-    setSecuritySettings(prev => ({
-      ...prev,
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }));
-    
-    setIsLoading(false);
-    setErrors({});
   };
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
-    { id: 'addresses', label: 'Addresses', icon: MapPin },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'preferences', label: 'Preferences', icon: Settings }
+    { id: 'wishlist', label: 'Wishlist', icon: Heart },
+    { id: 'orders', label: 'Orders', icon: Package },
+    { id: 'transactions', label: 'Transactions', icon: CreditCard },
+    { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
-  if (isLoading && activeTab === 'profile') {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-secondary-900 via-secondary-800 to-secondary-900 pt-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -201,7 +160,7 @@ const Profile = () => {
             Account Settings
           </h1>
           <p className="text-secondary-400">
-            Manage your account information and preferences
+            Manage your account information and activities
           </p>
         </div>
 
@@ -225,25 +184,6 @@ const Profile = () => {
                     <span className="font-medium">{tab.label}</span>
                   </button>
                 ))}
-              </div>
-
-              {/* Quick Stats */}
-              <div className="mt-8 pt-6 border-t border-secondary-700">
-                <h3 className="text-white font-medium mb-4">Quick Stats</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-secondary-400">Orders</span>
-                    <span className="text-white font-medium">12</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-secondary-400">Wishlist</span>
-                    <span className="text-white font-medium">5</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-secondary-400">Reviews</span>
-                    <span className="text-white font-medium">8</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -295,22 +235,15 @@ const Profile = () => {
                   <div className="flex items-center space-x-6">
                     <div className="relative">
                       <img
-                        src={profileData.avatar}
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name || 'User')}&background=0D8ABC&color=fff`}
                         alt="Profile"
                         className="w-24 h-24 rounded-full object-cover border-4 border-secondary-700"
                       />
-                      {isEditing && (
-                        <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white hover:bg-primary-600 transition-colors">
-                          <Camera className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold text-lg">
-                        {profileData.firstName} {profileData.lastName}
-                      </h3>
+                      <h3 className="text-white font-semibold text-lg">{profileData.name}</h3>
                       <p className="text-secondary-400">{profileData.email}</p>
-                      <p className="text-secondary-500 text-sm">Member since January 2024</p>
+                      <p className="text-secondary-500 text-sm">Member since {user && user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ''}</p>
                     </div>
                   </div>
 
@@ -318,44 +251,23 @@ const Profile = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-secondary-300 mb-2">
-                        First Name
+                        Name
                       </label>
                       <input
                         type="text"
-                        value={profileData.firstName}
-                        onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
                         disabled={!isEditing}
                         className={cn(
                           'input',
                           !isEditing && 'bg-secondary-700/30 cursor-not-allowed',
-                          errors.firstName && 'input-error'
+                          errors.name && 'input-error'
                         )}
                       />
-                      {errors.firstName && (
-                        <p className="text-red-400 text-sm mt-1">{errors.firstName}</p>
+                      {errors.name && (
+                        <p className="text-red-400 text-sm mt-1">{errors.name}</p>
                       )}
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-secondary-300 mb-2">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        value={profileData.lastName}
-                        onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                        disabled={!isEditing}
-                        className={cn(
-                          'input',
-                          !isEditing && 'bg-secondary-700/30 cursor-not-allowed',
-                          errors.lastName && 'input-error'
-                        )}
-                      />
-                      {errors.lastName && (
-                        <p className="text-red-400 text-sm mt-1">{errors.lastName}</p>
-                      )}
-                    </div>
-
                     <div>
                       <label className="block text-sm font-medium text-secondary-300 mb-2">
                         Email Address
@@ -375,7 +287,6 @@ const Profile = () => {
                         <p className="text-red-400 text-sm mt-1">{errors.email}</p>
                       )}
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-secondary-300 mb-2">
                         Phone Number
@@ -395,15 +306,14 @@ const Profile = () => {
                         <p className="text-red-400 text-sm mt-1">{errors.phone}</p>
                       )}
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-secondary-300 mb-2">
-                        Date of Birth
+                        Address
                       </label>
                       <input
-                        type="date"
-                        value={profileData.dateOfBirth}
-                        onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
+                        type="text"
+                        value={profileData.address}
+                        onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
                         disabled={!isEditing}
                         className={cn(
                           'input',
@@ -411,249 +321,192 @@ const Profile = () => {
                         )}
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-secondary-300 mb-2">
-                        Gender
+                        City
                       </label>
-                      <select
-                        value={profileData.gender}
-                        onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
+                      <input
+                        type="text"
+                        value={profileData.city}
+                        onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
                         disabled={!isEditing}
                         className={cn(
                           'input',
                           !isEditing && 'bg-secondary-700/30 cursor-not-allowed'
                         )}
-                      >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                        <option value="prefer-not-to-say">Prefer not to say</option>
-                      </select>
+                      />
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Security Tab */}
-              {activeTab === 'security' && (
-                <div className="space-y-6 animate-fade-in">
-                  <h2 className="text-xl font-semibold text-white">Security Settings</h2>
-
-                  {/* Change Password */}
-                  <div className="bg-secondary-700/30 rounded-lg p-6">
-                    <h3 className="text-white font-medium mb-4">Change Password</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-secondary-300 mb-2">
-                          Current Password
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            value={securitySettings.currentPassword}
-                            onChange={(e) => setSecuritySettings({ ...securitySettings, currentPassword: e.target.value })}
-                            className={cn('input pr-10', errors.currentPassword && 'input-error')}
-                            placeholder="Enter current password"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-secondary-400 hover:text-white"
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                        {errors.currentPassword && (
-                          <p className="text-red-400 text-sm mt-1">{errors.currentPassword}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-secondary-300 mb-2">
-                          New Password
-                        </label>
-                        <input
-                          type="password"
-                          value={securitySettings.newPassword}
-                          onChange={(e) => setSecuritySettings({ ...securitySettings, newPassword: e.target.value })}
-                          className={cn('input', errors.newPassword && 'input-error')}
-                          placeholder="Enter new password"
-                        />
-                        {errors.newPassword && (
-                          <p className="text-red-400 text-sm mt-1">{errors.newPassword}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-secondary-300 mb-2">
-                          Confirm New Password
-                        </label>
-                        <input
-                          type="password"
-                          value={securitySettings.confirmPassword}
-                          onChange={(e) => setSecuritySettings({ ...securitySettings, confirmPassword: e.target.value })}
-                          className={cn('input', errors.confirmPassword && 'input-error')}
-                          placeholder="Confirm new password"
-                        />
-                        {errors.confirmPassword && (
-                          <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={handlePasswordChange}
-                        disabled={isLoading}
-                        className="btn btn-primary btn-md"
-                      >
-                        {isLoading ? (
-                          <LoadingSpinner size="sm" color="white" />
-                        ) : (
-                          'Update Password'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Two-Factor Authentication */}
-                  <div className="bg-secondary-700/30 rounded-lg p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-white font-medium">Two-Factor Authentication</h3>
-                        <p className="text-secondary-400 text-sm">Add an extra layer of security to your account</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={securitySettings.twoFactorEnabled}
-                          onChange={(e) => setSecuritySettings({ ...securitySettings, twoFactorEnabled: e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-secondary-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-300 mb-2">
+                        State
                       </label>
+                      <input
+                        type="text"
+                        value={profileData.state}
+                        onChange={(e) => setProfileData({ ...profileData, state: e.target.value })}
+                        disabled={!isEditing}
+                        className={cn(
+                          'input',
+                          !isEditing && 'bg-secondary-700/30 cursor-not-allowed'
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-300 mb-2">
+                        ZIP Code
+                      </label>
+                      <input
+                        type="text"
+                        value={profileData.zipCode}
+                        onChange={(e) => setProfileData({ ...profileData, zipCode: e.target.value })}
+                        disabled={!isEditing}
+                        className={cn(
+                          'input',
+                          !isEditing && 'bg-secondary-700/30 cursor-not-allowed'
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-300 mb-2">
+                        Country
+                      </label>
+                      <input
+                        type="text"
+                        value={profileData.country}
+                        onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
+                        disabled={!isEditing}
+                        className={cn(
+                          'input',
+                          !isEditing && 'bg-secondary-700/30 cursor-not-allowed'
+                        )}
+                      />
                     </div>
                   </div>
+                  {errors.global && (
+                    <div className="text-red-400 mt-2">{errors.global}</div>
+                  )}
                 </div>
               )}
 
-              {/* Notifications Tab */}
-              {activeTab === 'notifications' && (
+              {/* Wishlist Tab */}
+              {activeTab === 'wishlist' && (
                 <div className="space-y-6 animate-fade-in">
-                  <h2 className="text-xl font-semibold text-white">Notification Preferences</h2>
-
-                  <div className="space-y-4">
-                    {Object.entries(notificationSettings).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between p-4 bg-secondary-700/30 rounded-lg">
-                        <div>
-                          <h3 className="text-white font-medium capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </h3>
-                          <p className="text-secondary-400 text-sm">
-                            {key === 'orderUpdates' && 'Get notified about order status changes'}
-                            {key === 'promotions' && 'Receive promotional offers and deals'}
-                            {key === 'newsletter' && 'Weekly newsletter with new products'}
-                            {key === 'smsNotifications' && 'SMS notifications for important updates'}
-                            {key === 'emailNotifications' && 'Email notifications for account activity'}
-                          </p>
+                  <h2 className="text-xl font-semibold text-white mb-4">Wishlist</h2>
+                  {wishlist.length === 0 ? (
+                    <p className="text-secondary-400">Your wishlist is empty.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {wishlist.map((item) => (
+                        <div key={item._id} className="p-4 bg-secondary-700/30 rounded-lg flex items-center space-x-4">
+                          <img src={item.image || item.images?.[0]} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
+                          <div className="flex-1">
+                            <h4 className="text-white font-medium">{item.name}</h4>
+                            <p className="text-secondary-400 text-sm">{item.category}</p>
+                          </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={(e) => setNotificationSettings({ 
-                              ...notificationSettings, 
-                              [key]: e.target.checked 
-                            })}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-secondary-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Other tabs can be implemented similarly */}
-              {activeTab === 'addresses' && (
+              {/* Orders Tab */}
+              {activeTab === 'orders' && (
                 <div className="space-y-6 animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-white">Saved Addresses</h2>
-                    <button className="btn btn-primary btn-sm">
-                      Add New Address
+                  <h2 className="text-xl font-semibold text-white mb-4">Order History</h2>
+                  {orders.length === 0 ? (
+                    <p className="text-secondary-400">No orders found.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <div key={order._id} className="p-4 bg-secondary-700/30 rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="text-secondary-400 text-sm">Order ID: {order._id}</div>
+                            <div className={cn(
+                              'px-3 py-1 rounded-full text-xs font-semibold',
+                              order.paymentStatus === 'paid'
+                                ? 'bg-green-500/20 text-green-400'
+                                : order.paymentStatus === 'failed'
+                                ? 'bg-red-500/20 text-red-400'
+                                : 'bg-yellow-500/20 text-yellow-400'
+                            )}>
+                              {order.paymentStatus}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {order.items.map((item) => (
+                              <div key={item.product} className="flex items-center space-x-2">
+                                <img src={item.image} alt={item.name} className="w-10 h-10 rounded" />
+                                <span className="text-white text-sm">{item.name} × {item.quantity}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex justify-between text-secondary-400 text-sm">
+                            <span>Total: <span className="text-white font-semibold">₹{order.total}</span></span>
+                            <span>Date: {new Date(order.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Transactions Tab */}
+              {activeTab === 'transactions' && (
+                <div className="space-y-6 animate-fade-in">
+                  <h2 className="text-xl font-semibold text-white mb-4">Payment Transactions</h2>
+                  {transactions.length === 0 ? (
+                    <p className="text-secondary-400">No transactions found.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {transactions.map((txn, idx) => (
+                        <div key={idx} className="p-4 bg-secondary-700/30 rounded-lg flex justify-between items-center">
+                          <div>
+                            <div className="text-white font-medium">Order: {txn.orderId}</div>
+                            <div className="text-secondary-400 text-sm">{txn.paymentMethod}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-white font-bold">₹{txn.amount}</div>
+                            <div className="text-secondary-400 text-xs">{new Date(txn.date).toLocaleString()}</div>
+                          </div>
+                          <div className={cn(
+                            'px-3 py-1 rounded-full text-xs font-semibold ml-4',
+                            txn.status === 'success'
+                              ? 'bg-green-500/20 text-green-400'
+                              : txn.status === 'failed'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-yellow-500/20 text-yellow-400'
+                          )}>
+                            {txn.status}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === 'settings' && (
+                <div className="space-y-6 animate-fade-in">
+                  <h2 className="text-xl font-semibold text-white mb-4">Account Settings</h2>
+                  <div className="p-4 bg-secondary-700/30 rounded-lg">
+                    <p className="text-secondary-400 text-sm mb-4">
+                      For password changes and notification preferences, please use the security and notifications sections.
+                    </p>
+                    <button className="btn bg-red-600 hover:bg-red-700 text-white btn-sm"
+                    onClick={() => {
+  logout();
+  navigate('/login');
+}}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
                     </button>
                   </div>
-                  
-                  <div className="space-y-4">
-                    {addresses.map((address) => (
-                      <div key={address.id} className="p-4 bg-secondary-700/30 rounded-lg">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="text-white font-medium capitalize">{address.type}</h3>
-                              {address.isDefault && (
-                                <span className="badge bg-primary-500 text-white text-xs">Default</span>
-                              )}
-                            </div>
-                            <p className="text-secondary-300 text-sm">
-                              {address.firstName} {address.lastName}
-                            </p>
-                            <p className="text-secondary-300 text-sm">
-                              {address.address}
-                            </p>
-                            <p className="text-secondary-300 text-sm">
-                              {address.city}, {address.state} {address.zipCode}
-                            </p>
-                            <p className="text-secondary-300 text-sm">
-                              {address.country}
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button className="btn btn-ghost btn-sm">Edit</button>
-                            <button className="btn btn-ghost btn-sm text-red-400">Delete</button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
 
-              {activeTab === 'preferences' && (
-                <div className="space-y-6 animate-fade-in">
-                  <h2 className="text-xl font-semibold text-white">Account Preferences</h2>
-                  
-                  <div className="space-y-4">
-                    <div className="p-4 bg-secondary-700/30 rounded-lg">
-                      <h3 className="text-white font-medium mb-2">Language</h3>
-                      <select className="input">
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                      </select>
-                    </div>
-                    
-                    <div className="p-4 bg-secondary-700/30 rounded-lg">
-                      <h3 className="text-white font-medium mb-2">Currency</h3>
-                      <select className="input">
-                        <option value="usd">USD ($)</option>
-                        <option value="eur">EUR (€)</option>
-                        <option value="gbp">GBP (£)</option>
-                      </select>
-                    </div>
-                    
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                      <h3 className="text-red-400 font-medium mb-2">Danger Zone</h3>
-                      <p className="text-red-300 text-sm mb-4">
-                        Once you delete your account, there is no going back. Please be certain.
-                      </p>
-                      <button className="btn bg-red-600 hover:bg-red-700 text-white btn-sm">
-                        Delete Account
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

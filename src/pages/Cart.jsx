@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  ArrowLeft, 
-  ArrowRight,
-  Tag,
-  Gift,
-  Truck,
-  Shield,
-  X
+  ShoppingCart, Plus, Minus, Trash2, ArrowLeft, ArrowRight, Tag, Gift, Truck, Shield, X
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { cn, formatPrice } from '../utils';
@@ -48,20 +38,14 @@ const Cart = () => {
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
-    
     setIsApplyingCoupon(true);
     setCouponError('');
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const result = applyCoupon(couponCode);
+    const result = await applyCoupon(couponCode);
     if (!result.success) {
       setCouponError(result.message);
     } else {
       setCouponCode('');
     }
-    
     setIsApplyingCoupon(false);
   };
 
@@ -341,32 +325,6 @@ const Cart = () => {
                   <Gift className="w-4 h-4 text-purple-400" />
                   <span>30-day return policy</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Recommended Products */}
-            <div className="bg-secondary-800/50 rounded-xl p-6 backdrop-blur-sm">
-              <h3 className="text-lg font-semibold text-white mb-4">You might also like</h3>
-              <div className="space-y-3">
-                {[
-                  { name: 'Wireless Mouse', price: 29.99, image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=100' },
-                  { name: 'USB-C Cable', price: 19.99, image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=100' }
-                ].map((product, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary-700/30 transition-colors cursor-pointer">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <div className="flex-1">
-                      <p className="text-white text-sm font-medium">{product.name}</p>
-                      <p className="text-primary-400 text-sm">{formatPrice(product.price)}</p>
-                    </div>
-                    <button className="text-primary-400 hover:text-primary-300 transition-colors">
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

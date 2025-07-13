@@ -1,18 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import { 
-  Grid, 
-  List, 
-  Filter, 
-  Search, 
-  SlidersHorizontal,
-  Star,
-  Heart,
-  ShoppingCart,
-  Eye,
-  ChevronDown,
-  X,
-  ArrowUpDown
+  Grid, List, Filter, Search, SlidersHorizontal, Star, Heart, ShoppingCart, Eye, ChevronDown, X, ArrowUpDown
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { cn, formatPrice, calculateDiscount, debounce } from '../utils';
@@ -30,132 +20,66 @@ const Products = () => {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedRating, setSelectedRating] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   
   const [searchParams] = useSearchParams();
   const { category } = useParams();
   const { addItem } = useCart();
+  const { user, token } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  // Mock products data - replace with real API
-  const mockProducts = [
-    {
-      id: 1,
-      name: 'Wireless Noise-Cancelling Headphones',
-      price: 299.99,
-      salePrice: 199.99,
-      rating: 4.8,
-      reviews: 1247,
-      images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'],
-      category: 'Electronics',
-      brand: 'AudioTech',
-      isNew: true,
-      slug: 'wireless-headphones',
-      description: 'Premium wireless headphones with active noise cancellation and 30-hour battery life.',
-      features: ['Active Noise Cancellation', '30h Battery', 'Wireless', 'Premium Sound']
-    },
-    {
-      id: 2,
-      name: 'Smart Fitness Watch',
-      price: 399.99,
-      salePrice: 299.99,
-      rating: 4.6,
-      reviews: 892,
-      images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400'],
-      category: 'Electronics',
-      brand: 'FitTech',
-      isHot: true,
-      slug: 'smart-fitness-watch',
-      description: 'Advanced fitness tracking with heart rate monitoring and GPS.',
-      features: ['Heart Rate Monitor', 'GPS', 'Water Resistant', 'Sleep Tracking']
-    },
-    {
-      id: 3,
-      name: 'Premium Running Shoes',
-      price: 159.99,
-      rating: 4.7,
-      reviews: 634,
-      images: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400'],
-      category: 'Sports',
-      brand: 'RunPro',
-      slug: 'premium-running-shoes',
-      description: 'Lightweight running shoes with advanced cushioning technology.',
-      features: ['Lightweight', 'Cushioned', 'Breathable', 'Durable']
-    },
-    {
-      id: 4,
-      name: 'Minimalist Backpack',
-      price: 89.99,
-      salePrice: 69.99,
-      rating: 4.5,
-      reviews: 423,
-      images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400'],
-      category: 'Fashion',
-      brand: 'UrbanStyle',
-      slug: 'minimalist-backpack',
-      description: 'Sleek and functional backpack perfect for daily commute.',
-      features: ['Water Resistant', 'Laptop Compartment', 'Ergonomic', 'Stylish']
-    },
-    {
-      id: 5,
-      name: 'Organic Cotton T-Shirt',
-      price: 29.99,
-      salePrice: 19.99,
-      rating: 4.3,
-      reviews: 256,
-      images: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400'],
-      category: 'Fashion',
-      brand: 'EcoWear',
-      slug: 'organic-cotton-tshirt',
-      description: 'Comfortable organic cotton t-shirt in various colors.',
-      features: ['Organic Cotton', 'Soft Feel', 'Multiple Colors', 'Sustainable']
-    },
-    {
-      id: 6,
-      name: 'Smart Home Speaker',
-      price: 149.99,
-      rating: 4.4,
-      reviews: 789,
-      images: ['https://images.unsplash.com/photo-1589492477829-5e65395b66cc?w=400'],
-      category: 'Electronics',
-      brand: 'SmartHome',
-      slug: 'smart-home-speaker',
-      description: 'Voice-controlled smart speaker with premium sound quality.',
-      features: ['Voice Control', 'Smart Home Hub', 'Premium Audio', 'Compact Design']
-    }
-  ];
-
-  // Load products
+  // Fetch products from backend API
   useEffect(() => {
     const loadProducts = async () => {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      let filtered = [...mockProducts];
-      
-      // Filter by category from URL
-      if (category) {
-        filtered = filtered.filter(product => 
-          product.category.toLowerCase() === category.toLowerCase()
-        );
+      try {
+        let url = '/api/products';
+        const params = [];
+        if (category) params.push(`category=${encodeURIComponent(category)}`);
+        const searchFromUrl = searchParams.get('search');
+        if (searchFromUrl) params.push(`search=${encodeURIComponent(searchFromUrl)}`);
+        if (params.length) url += `?${params.join('&')}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        setProducts(data.products || []);
+        setFilteredProducts(data.products || []);
+        setSearchQuery(searchFromUrl || '');
+      } catch (err) {
+        setProducts([]);
+        setFilteredProducts([]);
       }
-      
-      // Filter by search query from URL
-      const searchFromUrl = searchParams.get('search');
-      if (searchFromUrl) {
-        setSearchQuery(searchFromUrl);
-        filtered = filtered.filter(product =>
-          product.name.toLowerCase().includes(searchFromUrl.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchFromUrl.toLowerCase())
-        );
-      }
-      
-      setProducts(filtered);
-      setFilteredProducts(filtered);
       setIsLoading(false);
     };
 
     loadProducts();
+    // eslint-disable-next-line
   }, [category, searchParams]);
+
+  // Fetch user wishlist on mount (if logged in)
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user || !token) {
+        setWishlist([]);
+        return;
+      }
+      try {
+        const res = await fetch('/api/user/wishlist', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.wishlist)) {
+          setWishlist(data.wishlist.map(p => p._id || p.id));
+        } else {
+          setWishlist([]);
+        }
+      } catch {
+        setWishlist([]);
+      }
+    };
+    fetchWishlist();
+  }, [user, token]);
 
   // Get unique values for filters
   const categories = useMemo(() => 
@@ -216,7 +140,7 @@ const Products = () => {
         filtered.sort((a, b) => b.rating - a.rating);
         break;
       case 'newest':
-        filtered.sort((a, b) => b.isNew - a.isNew);
+        filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
         break;
       default:
         // Featured - keep original order
@@ -253,6 +177,33 @@ const Products = () => {
   const debouncedSearch = debounce((query) => {
     setSearchQuery(query);
   }, 300);
+
+  // Wishlist toggle handler
+  const handleWishlistToggle = async (productId) => {
+    if (!user || !token) {
+      navigate('/login');
+      return;
+    }
+    setWishlistLoading(true);
+    try {
+      const isInWishlist = wishlist.includes(productId);
+      const res = await fetch('/api/user/wishlist', {
+        method: isInWishlist ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.wishlist)) {
+        setWishlist(data.wishlist.map(p => p._id || p.id));
+      }
+    } catch {
+      // Optionally show error
+    }
+    setWishlistLoading(false);
+  };
 
   if (isLoading) {
     return (
@@ -355,7 +306,7 @@ const Products = () => {
         </div>
 
         <div className="flex gap-8">
-          {/* Filters Sidebar */}
+          {/* Filters Sidebar - EXACTLY THE SAME AS YOUR ORIGINAL */}
           <div className={cn(
             'w-64 space-y-6',
             'lg:block',
@@ -483,10 +434,13 @@ const Products = () => {
               )}>
                 {filteredProducts.map((product, index) => (
                   <ProductCard
-                    key={product.id}
+                    key={product._id || product.id}
                     product={product}
                     viewMode={viewMode}
                     onAddToCart={() => addItem(product)}
+                    onToggleWishlist={() => handleWishlistToggle(product._id || product.id)}
+                    isWishlisted={wishlist.includes(product._id || product.id)}
+                    wishlistLoading={wishlistLoading}
                     index={index}
                   />
                 ))}
@@ -499,10 +453,8 @@ const Products = () => {
   );
 };
 
-// Product Card Component
-const ProductCard = ({ product, viewMode, onAddToCart, index }) => {
-  const [isWishlisted, setIsWishlisted] = useState(false);
-
+// Product Card Component - Updated with wishlist functionality
+const ProductCard = ({ product, viewMode, onAddToCart, onToggleWishlist, isWishlisted, wishlistLoading, index }) => {
   if (viewMode === 'list') {
     return (
       <div 
@@ -512,7 +464,7 @@ const ProductCard = ({ product, viewMode, onAddToCart, index }) => {
         <div className="flex gap-6">
           <div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0">
             <img
-              src={product.images[0]}
+              src={product.images?.[0] || product.image}
               alt={product.name}
               className="w-full h-full object-cover"
             />
@@ -556,15 +508,17 @@ const ProductCard = ({ product, viewMode, onAddToCart, index }) => {
               
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setIsWishlisted(!isWishlisted)}
+                  onClick={onToggleWishlist}
                   className={cn(
                     'p-2 rounded-lg transition-colors',
                     isWishlisted
                       ? 'bg-red-500/20 text-red-400'
                       : 'bg-secondary-700/50 text-secondary-400 hover:text-white'
                   )}
+                  disabled={wishlistLoading}
+                  title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                 >
-                  <Heart className="w-4 h-4" />
+                  <Heart className="w-4 h-4" fill={isWishlisted ? "currentColor" : "none"} />
                 </button>
                 <button className="p-2 bg-secondary-700/50 text-secondary-400 hover:text-white rounded-lg transition-colors">
                   <Eye className="w-4 h-4" />
@@ -591,7 +545,7 @@ const ProductCard = ({ product, viewMode, onAddToCart, index }) => {
     >
       <div className="relative overflow-hidden">
         <img
-          src={product.images[0]}
+          src={product.images?.[0] || product.image}
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -614,15 +568,17 @@ const ProductCard = ({ product, viewMode, onAddToCart, index }) => {
         {/* Quick Actions */}
         <div className="absolute top-3 right-3 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
-            onClick={() => setIsWishlisted(!isWishlisted)}
+            onClick={onToggleWishlist}
             className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center transition-colors',
               isWishlisted
                 ? 'bg-red-500/90 text-white'
                 : 'bg-white/90 hover:bg-white text-secondary-600'
             )}
+            disabled={wishlistLoading}
+            title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
-            <Heart className="w-4 h-4" />
+            <Heart className="w-4 h-4" fill={isWishlisted ? "currentColor" : "none"} />
           </button>
           <button className="w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-colors">
             <Eye className="w-4 h-4 text-secondary-600" />

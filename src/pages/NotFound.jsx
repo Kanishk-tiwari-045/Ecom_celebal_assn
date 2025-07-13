@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   ArrowLeft, 
-  Search, 
-  Package, 
-  ShoppingBag,
-  Star,
-  Zap
+  Search,
 } from 'lucide-react';
 import { cn } from '../utils';
 
@@ -17,23 +13,8 @@ const NotFound = () => {
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
-    // Trigger animation on mount
     setIsAnimating(true);
   }, []);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const popularCategories = [
-    { name: 'Electronics', href: '/products/electronics', icon: Zap },
-    { name: 'Fashion', href: '/products/fashion', icon: Star },
-    { name: 'Home & Garden', href: '/products/home-garden', icon: Package },
-    { name: 'Sports', href: '/products/sports', icon: ShoppingBag }
-  ];
 
   const quickLinks = [
     { name: 'Home', href: '/', description: 'Return to homepage' },
@@ -84,28 +65,6 @@ const NotFound = () => {
             Don't worry though, we'll help you find your way back to shopping paradise!
           </p>
 
-          {/* Search Bar */}
-          <div className="mb-12">
-            <form onSubmit={handleSearch} className="max-w-md mx-auto">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-secondary-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for products..."
-                  className="w-full pl-12 pr-4 py-4 bg-secondary-800/50 border border-secondary-700 rounded-xl text-white placeholder-secondary-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 btn btn-primary btn-sm"
-                >
-                  Search
-                </button>
-              </div>
-            </form>
-          </div>
-
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
             <Link
@@ -131,29 +90,6 @@ const NotFound = () => {
             </button>
           </div>
 
-          {/* Popular Categories */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold text-white mb-6">Popular Categories</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {popularCategories.map((category, index) => (
-                <Link
-                  key={category.name}
-                  to={category.href}
-                  className={cn(
-                    'group bg-secondary-800/50 hover:bg-secondary-700/50 rounded-lg p-4 border border-secondary-700 hover:border-primary-500/50 transition-all duration-300',
-                    'animate-slide-up'
-                  )}
-                  style={{ animationDelay: `${600 + index * 100}ms` }}
-                >
-                  <div className="flex items-center justify-center w-10 h-10 bg-primary-500/10 rounded-lg mx-auto mb-3 group-hover:bg-primary-500/20 transition-colors">
-                    <category.icon className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <h3 className="text-white font-medium text-sm">{category.name}</h3>
-                </Link>
-              ))}
-            </div>
-          </div>
-
           {/* Quick Links */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-white mb-6">Quick Links</h2>
@@ -175,17 +111,6 @@ const NotFound = () => {
                 </Link>
               ))}
             </div>
-          </div>
-
-          {/* Fun Message */}
-          <div className={cn(
-            'bg-gradient-to-r from-primary-600/20 to-accent-600/20 rounded-xl p-6 border border-primary-500/20 transition-all duration-1000 delay-1200',
-            isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          )}>
-            <p className="text-primary-200 text-sm">
-              💡 <strong>Pro Tip:</strong> While you're here, why not check out our latest deals? 
-              We've got some amazing products waiting for you!
-            </p>
           </div>
         </div>
 
